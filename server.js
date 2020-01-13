@@ -6,6 +6,7 @@ let ObjectID = MongoDb.ObjectID;
 let reloadMagic = require("./reload-magic.js");
 let multer = require("multer");
 let upload = multer({ dest: __dirname + "/uploads/" });
+let passwordHash = require("password-hash");
 reloadMagic(app);
 app.use("/", express.static("build"));
 app.use("/uploads", express.static("uploads"));
@@ -30,7 +31,7 @@ app.get("/all-posts", (req, res) => {
       res.send(JSON.stringify(ps));
     });
 });
-app.post("/login", upload.none(), (req, res) => {
+let login = (req, res) => {
   console.log("login", req.body);
   let name = req.body.username;
   let pwd = req.body.password;
@@ -44,32 +45,105 @@ app.post("/login", upload.none(), (req, res) => {
       res.send(JSON.stringify({ success: false }));
       return;
     }
-    if (user.password === pwd) {
+    let uPwd = user.password;
+    if (passwordHash.isHashed(uPwd) && passwordHash.verify(pwd, uPwd)) {
+      res.send(JSON.stringify({ success: true }));
+      return;
+    } else if (user.password === pwd) {
       res.send(JSON.stringify({ success: true }));
       return;
     }
     res.send(JSON.stringify({ success: false }));
   });
+};
+
+app.post("/login", upload.none(), login);
+
+app.post("/signup", upload.none(), (req, res) => {
+  console.log("**** I'm in the signup endpoint");
+  console.log("this is the body", req.body);
+  let name = req.body.username;
+  let enteredPwd = req.body.password;
+  let hashedPwd = passwordHash.generate(enteredPwd);
+
+  dbo.collection("users").findOne({ username: name }, (err, user) => {
+    if (err) {
+      console.log("sign up error, err");
+      res.send(JSON.stringify({ success: false }));
+      return;
+    }
+    if (user !== null) {
+      res.send(JSON.stringify({ success: false, message: "Username taken" }));
+      return;
+    }
+    dbo
+      .collection("users")
+      .insertOne({
+        username: name,
+        password: hashedPwd
+      })
+      .then(() => {
+        login(req, res);
+      });
+  });
 });
-app.post("/new-post", upload.single("img"), (req, res) => {
+app.post("/new-post", upload.single("mfile"), (req, res) => {
   console.log("request to /new-post. body: ", req.body);
   let description = req.body.description;
   let file = req.file;
+  let filetype = file.mimetype;
+  console.log("type of the multimedia file", filetype);
   let frontendPath = "/uploads/" + file.filename;
-  dbo
-    .collection("posts")
-    .insertOne({ description: description, frontendPath: frontendPath });
+  let createdby = req.body.createdby;
+  dbo.collection("posts").insertOne({
+    description: description,
+    frontendPath: frontendPath,
+    filetype: filetype,
+    createdby: createdby
+  });
   res.send(JSON.stringify({ success: true }));
 });
-app.post("/update", upload.none(), (req, res) => {
+
+app.post("/delete-post", upload.none(), (req, res) => {
+  console.log("request to /delete current post. body: ", req.body);
+  let id = req.body.id;
+  console.log("the post to be delete", id);
+  try {
+    dbo.collection("posts").deleteOne({ _id: ObjectID(id) });
+  } catch (e) {
+    console.log("message after delete post", e);
+    return;
+  }
+  res.send(JSON.stringify({ success: true }));
+});
+
+app.post("/update", upload.single("mfile"), (req, res) => {
   console.log("request to /update");
   let id = req.body.id.toString();
+  let file = req.file;
+  let filetype = file.mimetype;
+  let frontendPath = "/uploads/" + file.filename;
   let desc = req.body.description;
+  let updatedby = req.body.updatedby;
   console.log("sent from client", desc, id);
-  dbo
-    .collection("posts")
-    .updateOne({ _id: ObjectID(id) }, { $set: { description: desc } });
-  res.send("success");
+  dbo.collection("posts").updateOne(
+    { _id: ObjectID(id) },
+    {
+      $set: {
+        description: desc,
+        updatedby: updatedby,
+        frontendPath: frontendPath,
+        filetype: filetype
+      }
+    }
+  );
+  res.send(JSON.stringify({ success: true }));
+});
+app.post("/delete-all", upload.none(), (req, res) => {
+  console.log("request to /delete all");
+
+  dbo.collection("posts").remove({});
+  res.send(JSON.stringify({ success: true }));
 });
 app.all("/*", (req, res, next) => {
   res.sendFile(__dirname + "/build/index.html");
