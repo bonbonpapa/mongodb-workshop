@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import Post from "./Post.jsx";
 import NewPost from "./NewPost.jsx";
+import { connect } from "react-redux";
 class Content extends Component {
   constructor(props) {
     super(props);
@@ -15,8 +16,10 @@ class Content extends Component {
     body = JSON.parse(body);
     this.setState({ posts: body });
   };
-  deleteAll = async () => {
-    let response = await fetch("/delete-all", { method: "POST" });
+    deleteAll = async () => {
+        let formDate = new FormData();
+        formData.append("username", this.state.username);
+        let response = await fetch("/delete-all", { method: "POST", body: formData});
     let body = await response.text();
     body = JSON.parse(body);
     if (body.success) {
@@ -38,4 +41,9 @@ class Content extends Component {
     );
   };
 }
-export default Content;
+let mapStateToProps = state => {
+    return {
+        username: state.username
+    };
+};
+export default connect(mapStateToProps)(Content);

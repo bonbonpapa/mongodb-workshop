@@ -140,9 +140,9 @@ app.post("/update", upload.single("mfile"), (req, res) => {
   res.send(JSON.stringify({ success: true }));
 });
 app.post("/delete-all", upload.none(), (req, res) => {
-  console.log("request to /delete all");
-
-  dbo.collection("posts").remove({});
+    console.log("request to /delete all");
+    let username = req.body.username;
+    dbo.collection("posts").deleteOne({username});
   res.send(JSON.stringify({ success: true }));
 });
 app.all("/*", (req, res, next) => {
