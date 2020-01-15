@@ -30,9 +30,14 @@ class Post extends Component {
     this.setState({ imgfile: event.target.files[0] });
   };
 
-  render = () => {
-    let filetype = this.props.contents.filetype;
-    let multimediacontent = "";
+    render = () => {
+        let frontendPaths = this.props.contents.frontendPaths;
+        let multimediacontent = "";
+        if (frontendPaths) {
+            multimediacontent = frontendPath.map(file => {
+
+                let filetype = this.props.contents.filetype;
+    
     if (filetype === "image/jpeg") {
       multimediacontent = (
         <div>
@@ -57,6 +62,11 @@ class Post extends Component {
         ></audio>
       );
     }
+                return
+            })
+
+        }
+    
 
     return (
       <form onSubmit={this.submitHandler}>

@@ -17,13 +17,14 @@ class Content extends Component {
     this.setState({ posts: body });
   };
     deleteAll = async () => {
-        let formDate = new FormData();
-        formData.append("username", this.state.username);
+        let formData = new FormData();
+        formData.append("username", this.props.username);
         let response = await fetch("/delete-all", { method: "POST", body: formData});
     let body = await response.text();
     body = JSON.parse(body);
     if (body.success) {
-      alert("all post has been deleted!");
+        alert("all post has been deleted!");
+        this.setState({ posts : body.posts})
     }
   };
   render = () => {

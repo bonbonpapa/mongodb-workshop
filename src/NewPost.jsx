@@ -4,7 +4,7 @@ class NewPost extends Component {
   constructor() {
     super();
     this.state = {
-      file: "",
+      files: [],
       description: ""
     };
   }
@@ -12,29 +12,41 @@ class NewPost extends Component {
     this.setState({ description: e.target.value });
   };
 
-  fileChangeHandler = e => {
-    this.setState({ file: e.target.files[0] });
+    fileChangeHandler = event => {
+        console.log("files selected, ", event.target.files);
+        
+       // for (let i = 0; i < event.target.files.length; i++) {
+       //     this.setState({
+                //              files: this.state.files.slice().concat(event.target.files[i])
+      //          files: event.target.files
+     //       });
+        //}
+        this.setState({ files: event.target.files });
+      
   };
 
   submitHandler = evt => {
     evt.preventDefault();
-    let data = new FormData();
-    data.append("mfile", this.state.file);
+      let data = new FormData();
+      for (let i = 0; i < this.state.files.length; i++) {
+          data.append("mfiles", this.state.files[i]);
+      }
+      console.log("files array", this.state.files);
+      
     data.append("description", this.state.description);
-    data.append("createdby", this.props.username);
+      data.append("createdby", this.props.username);
+      console.log("the  to the server", data);
     fetch("/new-post", { method: "POST", body: data });
 
-    this.setState({ file: "", description: "" });
+    this.setState({ file: [], description: "" });
   };
 
   render = () => {
     return (
       <div>
         <form onSubmit={this.submitHandler}>
-          <label>
-            Add File
-            <input type="file" onChange={this.fileChangeHandler} />
-          </label>
+             <label>Add File</label>                    
+            <input type="file" name="mfiles" onChange={this.fileChangeHandler} multiple="multiple" />          
           <input
             type="text"
             value={this.state.description}
