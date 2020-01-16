@@ -16,15 +16,18 @@ class Content extends Component {
     body = JSON.parse(body);
     this.setState({ posts: body });
   };
-    deleteAll = async () => {
-        let formData = new FormData();
-        formData.append("username", this.props.username);
-        let response = await fetch("/delete-all", { method: "POST", body: formData});
+  deleteAll = async () => {
+    let formData = new FormData();
+    formData.append("username", this.props.username);
+    let response = await fetch("/delete-all", {
+      method: "POST",
+      body: formData
+    });
     let body = await response.text();
     body = JSON.parse(body);
     if (body.success) {
-        alert("all post has been deleted!");
-        this.setState({ posts : body.posts})
+      alert("all post has been deleted!");
+      this.setState({ posts: body.posts });
     }
   };
   render = () => {
@@ -43,8 +46,8 @@ class Content extends Component {
   };
 }
 let mapStateToProps = state => {
-    return {
-        username: state.username
-    };
+  return {
+    username: state.username
+  };
 };
 export default connect(mapStateToProps)(Content);
