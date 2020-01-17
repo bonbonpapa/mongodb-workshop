@@ -31,6 +31,42 @@ app.get("/all-posts", (req, res) => {
       res.send(JSON.stringify(ps));
     });
 });
+app.get("/getmedia", (req, res) => {
+  console.log("request to the get media");
+  const mid = req.query.mid;
+
+  dbo.collection("filestable").findOne({ _id: ObjectID(mid) }, (err, mpath) => {
+    if (err) {
+      console.log("/get media error", err);
+      res.send(JSON.stringify({ success: false }));
+      return;
+    }
+    if (mpath === null) {
+      res.send(JSON.stringify({ success: false }));
+      return;
+    }
+    console.log("mpath object", mpath);
+    res.send(JSON.stringify({ success: true, mpath: mpath }));
+  });
+});
+app.post("/updatemedia", upload.single("mfile"), (req, res) => {
+  console.log("request to /update media file");
+  let id = req.body.id;
+  let file = req.file;
+  let filetype = file.mimetype;
+  let frontendPath = "/uploads/" + file.filename;
+
+  dbo.collection("filestable").updateOne(
+    { _id: ObjectID(id) },
+    {
+      $set: {
+        frontendPath: frontendPath,
+        filetype: filetype
+      }
+    }
+  );
+  res.send(JSON.stringify({ success: true }));
+});
 let login = (req, res) => {
   console.log("login", req.body);
   let name = req.body.username;
@@ -87,21 +123,25 @@ app.post("/signup", upload.none(), (req, res) => {
       });
   });
 });
-app.post("/new-post", upload.array("mfiles",9), (req, res) => {
+app.post("/new-post", upload.array("mfiles", 9), async (req, res) => {
   console.log("request to /new-post. body: ", req.body);
   let description = req.body.description;
-    let files = req.files;
-    console.log("uploaded files,", files);
-    let frontendPaths = files.map(file => {
-        let filetype = file.mimetype;
-        return { frontendPath: "/uploads/" + file.filename, filetype: filetype };
-    })
-    console.log("Frontend paths array", frontendPaths);
+  let files = req.files;
+  console.log("uploaded files,", files);
+  let frontendPaths = files.map(file => {
+    let filetype = file.mimetype;
+    return { frontendPath: "/uploads/" + file.filename, filetype: filetype };
+  });
+  console.log("Frontend paths array", frontendPaths);
+  let insertReturn = await dbo
+    .collection("filestable")
+    .insertMany(frontendPaths);
+  console.log("return after insert many in the new table", insertReturn);
 
   let createdby = req.body.createdby;
   dbo.collection("posts").insertOne({
     description: description,
-    frontendPaths: frontendPaths,
+    frontendPaths: insertReturn.insertedIds,
     createdby: createdby
   });
   res.send(JSON.stringify({ success: true }));
@@ -143,18 +183,20 @@ app.post("/update", upload.single("mfile"), (req, res) => {
   res.send(JSON.stringify({ success: true }));
 });
 app.post("/delete-all", upload.none(), async (req, res) => {
-    console.log("request to /delete all");
-    let username = req.body.username;
-    console.log("Delete posts of the user", username);
-    try {
-        dbo.collection("posts").deleteMany({ createdby : username });
-    }
-    catch (e) {
-        console.log("message after delete post", e);
-        return;
-    }
-    let pst = await dbo.collection("posts").find({}).toArray();
-        
+  console.log("request to /delete all");
+  let username = req.body.username;
+  console.log("Delete posts of the user", username);
+  try {
+    dbo.collection("posts").deleteMany({ createdby: username });
+  } catch (e) {
+    console.log("message after delete post", e);
+    return;
+  }
+  let pst = await dbo
+    .collection("posts")
+    .find({})
+    .toArray();
+
   res.send(JSON.stringify({ success: true, posts: pst }));
 });
 app.all("/*", (req, res, next) => {
