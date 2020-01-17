@@ -3,6 +3,7 @@ import React, { Component } from "react";
 class MediaItem extends Component {
   constructor(props) {
     super(props);
+
     this.state = {
       mpath: {},
       mfile: ""
@@ -25,6 +26,10 @@ class MediaItem extends Component {
   };
   updateimgSelectHandler = event => {
     this.setState({ mfile: event.target.files[0] });
+  };
+  reloadMediaUpdate = event => {
+    event.preventDefault();
+    this.loadMedia();
   };
   imgSubmitHandler = event => {
     event.preventDefault();
@@ -52,6 +57,9 @@ class MediaItem extends Component {
               <input type="file" onChange={this.updateimgSelectHandler} />
             </label>
             <button onClick={this.imgSubmitHandler}>Update image</button>
+            <button type="button" onClick={this.reloadMediaUpdate}>
+              reload image
+            </button>
           </form>
         </div>
       );
